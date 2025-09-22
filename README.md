@@ -12,25 +12,31 @@ Follow these steps to run the project locally:
 composer install
 ```
 
-### 2. Generate application key
+### 2. Copy env file
+
+```bash
+cp .env.example .env
+```
+
+### 3. Generate application key
 
 ```bash
 php artisan key:generate
 ```
 
-### 3. Run database migrations
+### 4. Run database migrations
 
 ```bash
 php artisan migrate
 ```
 
-### 4. (Optional) Seed the database
+### 5. (Optional) Seed the database
 
 ```bash
 php artisan db:seed
 ```
 
-### 5. Start the development server
+### 6. Start the development server
 
 ```bash
 php artisan serve
