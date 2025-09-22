@@ -1,18 +1,11 @@
 <?php
 
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderDetailController;
 use App\Http\Controllers\UserAddressController;
 
 Route::middleware(['auth.cookie', 'user.ownership'])->group(function () {
-    Route::resource('products', ProductController::class)
-        ->only(['index', 'show']);
-
-    Route::resource('categories', CategoryController::class)
-        ->only(['index', 'show']);
 
     Route::resource('carts', CartController::class)
         ->only(['index', 'show', 'store', 'update', 'destroy']);

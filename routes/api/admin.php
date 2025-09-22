@@ -8,7 +8,7 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderDetailController;
 use App\Http\Controllers\UserAddressController;
 
-Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
+Route::middleware(['auth.cookie', 'role:admin'])->prefix('admin')->group(function () {
     Route::resource('products', ProductController::class)
         ->except(['create', 'edit']);
     Route::resource('categories', CategoryController::class)

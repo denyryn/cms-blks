@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cart;
+use App\Services\CartService;
 use App\Http\Resources\CartResource;
 use App\Http\Requests\StoreCartRequest;
 use App\Http\Requests\UpdateCartRequest;
+use App\Http\Requests\CartQuantityRequest;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -15,6 +17,13 @@ class CartController extends Controller
 {
     use ApiResponse;
 
+    protected CartService $cartService;
+
+    public function __construct(CartService $cartService)
+    {
+        $this->cartService = $cartService;
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -23,11 +32,7 @@ class CartController extends Controller
         $perPage = $request->get('per_page', 15);
         $user = $request->user();
 
-        // Only show cart items for the authenticated user
-        $carts = Cart::with(['product.category'])
-            ->where('user_id', $user->id)
-            ->paginate($perPage);
-
+        $carts = $this->cartService->getUserCartPaginated($user, $perPage);
         $resource = CartResource::collection($carts);
 
         return $this->paginatedResponse($resource, 'Cart items retrieved successfully.');
@@ -41,33 +46,23 @@ class CartController extends Controller
         $validated = $request->validated();
         $user = $request->user();
 
-        // Ensure we use the authenticated user's ID, not from request
-        $validated['user_id'] = $user->id;
+        $productExistsInCart = $this->cartService->productExistsInCart($user, $validated['product_id']);
 
-        // Check if the product is already in the user's cart
-        $existingCart = Cart::where('user_id', $user->id)
-            ->where('product_id', $validated['product_id'])
-            ->first();
+        $cart = $this->cartService->addToCart(
+            $user,
+            $validated['product_id'],
+            $validated['quantity']
+        );
 
-        if ($existingCart) {
-            // Update quantity instead of creating new record
-            $existingCart->increment('quantity', $validated['quantity']);
-            $existingCart->load(['product.category']);
-
-            return $this->successResponse(
-                new CartResource($existingCart),
-                'Product quantity updated in cart.',
-                Response::HTTP_OK
-            );
-        }
-
-        $cart = Cart::create($validated);
-        $cart->load(['product.category']);
+        $statusCode = $productExistsInCart ? Response::HTTP_OK : Response::HTTP_CREATED;
+        $message = $productExistsInCart
+            ? 'Product quantity updated in cart.'
+            : 'Product added to cart successfully.';
 
         return $this->successResponse(
             new CartResource($cart),
-            'Product added to cart successfully.',
-            Response::HTTP_CREATED
+            $message,
+            $statusCode
         );
     }
 
@@ -76,7 +71,7 @@ class CartController extends Controller
      */
     public function show(Cart $cart): JsonResponse
     {
-        $cart->load(['user', 'product.category']);
+        $cart = $this->cartService->getCartItemWithRelations($cart);
 
         return $this->successResponse(
             new CartResource($cart),
@@ -90,8 +85,7 @@ class CartController extends Controller
     public function update(UpdateCartRequest $request, Cart $cart): JsonResponse
     {
         $validated = $request->validated();
-        $cart->update($validated);
-        $cart->load(['user', 'product.category']);
+        $cart = $this->cartService->updateCartItem($cart, $validated);
 
         return $this->successResponse(
             new CartResource($cart),
@@ -104,7 +98,7 @@ class CartController extends Controller
      */
     public function destroy(Cart $cart): JsonResponse
     {
-        $cart->delete();
+        $this->cartService->removeCartItem($cart);
 
         return $this->successResponse(
             null,
@@ -119,24 +113,13 @@ class CartController extends Controller
     public function getUserCart(Request $request): JsonResponse
     {
         $user = $request->user();
+        $cartData = $this->cartService->getUserCartWithSummary($user);
 
-        $carts = Cart::where('user_id', $user->id)
-            ->with(['product.category'])
-            ->get();
-
-        $resource = CartResource::collection($carts);
-        $totalItems = $carts->sum('quantity');
-        $totalPrice = $carts->sum(function ($cart) {
-            return $cart->quantity * $cart->product->price;
-        });
+        $resource = CartResource::collection($cartData['items']);
 
         return $this->successResponse([
             'items' => $resource,
-            'summary' => [
-                'total_items' => $totalItems,
-                'total_price' => $totalPrice,
-                'items_count' => $carts->count()
-            ]
+            'summary' => $cartData['summary']
         ], 'User cart retrieved successfully.');
     }
 
@@ -147,12 +130,67 @@ class CartController extends Controller
     public function clearUserCart(Request $request): JsonResponse
     {
         $user = $request->user();
-
-        $deletedCount = Cart::where('user_id', $user->id)->delete();
+        $deletedCount = $this->cartService->clearUserCart($user);
 
         return $this->successResponse(
             ['deleted_items' => $deletedCount],
             'Cart cleared successfully.'
+        );
+    }
+
+    /**
+     * Increment cart item quantity.
+     */
+    public function incrementQuantity(Cart $cart, CartQuantityRequest $request): JsonResponse
+    {
+        $amount = $request->validated()['amount'] ?? 1;
+        $cart = $this->cartService->incrementQuantity($cart, $amount);
+
+        return $this->successResponse(
+            new CartResource($cart),
+            'Cart item quantity incremented successfully.'
+        );
+    }
+
+    /**
+     * Decrement cart item quantity.
+     */
+    public function decrementQuantity(Cart $cart, CartQuantityRequest $request): JsonResponse
+    {
+        $amount = $request->validated()['amount'] ?? 1;
+        $cart = $this->cartService->decrementQuantity($cart, $amount);
+
+        if ($cart->exists) {
+            return $this->successResponse(
+                new CartResource($cart),
+                'Cart item quantity decremented successfully.'
+            );
+        }
+
+        return $this->successResponse(
+            null,
+            'Cart item removed (quantity reached zero).'
+        );
+    }
+
+    /**
+     * Set specific quantity for cart item.
+     */
+    public function setQuantity(Cart $cart, CartQuantityRequest $request): JsonResponse
+    {
+        $quantity = $request->validated()['quantity'] ?? 1;
+        $cart = $this->cartService->setQuantity($cart, $quantity);
+
+        if ($cart->exists) {
+            return $this->successResponse(
+                new CartResource($cart),
+                'Cart item quantity updated successfully.'
+            );
+        }
+
+        return $this->successResponse(
+            null,
+            'Cart item removed (quantity set to zero or below).'
         );
     }
 }

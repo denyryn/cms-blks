@@ -18,6 +18,7 @@ class ProductFactory extends Factory
     {
         $name = $this->faker->unique()->word();
         return [
+            'category_id' => $this->faker->numberBetween(1, 10),
             'name' => $name,
             'slug' => \Str::slug($name),
             'description' => $this->faker->sentence(),
