@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 
 class ProductController extends Controller
@@ -57,6 +58,13 @@ class ProductController extends Controller
     public function store(StoreProductRequest $request): JsonResponse
     {
         $validated = $request->validated();
+
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('products', 'public');
+            $validated['image_url'] = Storage::url($imagePath);
+        }
+
         $product = Product::create($validated);
         $product->load('category');
 
@@ -86,6 +94,20 @@ class ProductController extends Controller
     public function update(UpdateProductRequest $request, Product $product): JsonResponse
     {
         $validated = $request->validated();
+
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            // Delete old image if it exists
+            if ($product->image_url) {
+                $oldImagePath = str_replace('/storage/', '', $product->image_url);
+                Storage::disk('public')->delete($oldImagePath);
+            }
+
+            // Store new image
+            $imagePath = $request->file('image')->store('products', 'public');
+            $validated['image_url'] = Storage::url($imagePath);
+        }
+
         $product->update($validated);
         $product->load('category');
 
@@ -106,6 +128,12 @@ class ProductController extends Controller
                 'Cannot delete product that is in carts or orders.',
                 Response::HTTP_CONFLICT
             );
+        }
+
+        // Delete associated image file
+        if ($product->image_url) {
+            $imagePath = str_replace('/storage/', '', $product->image_url);
+            Storage::disk('public')->delete($imagePath);
         }
 
         $product->delete();

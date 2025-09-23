@@ -30,7 +30,7 @@ class UpdateProductRequest extends FormRequest
                 Rule::unique('products', 'name')->ignore($this->route('product'))
             ],
             'description' => 'nullable|string|max:1000',
-            'image_url' => 'nullable|url|max:255',
+            'image' => 'nullable|file|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
             'price' => 'required|numeric|min:0|max:999999.99',
             'category_id' => 'nullable|exists:categories,id',
         ];
@@ -50,8 +50,10 @@ class UpdateProductRequest extends FormRequest
             'name.unique' => 'A product with this name already exists.',
             'description.string' => 'The description must be a string.',
             'description.max' => 'The description must not exceed 1000 characters.',
-            'image_url.url' => 'The image URL must be a valid URL.',
-            'image_url.max' => 'The image URL must not exceed 255 characters.',
+            'image.file' => 'The image must be a file.',
+            'image.image' => 'The file must be an image.',
+            'image.mimes' => 'The image must be a file of type: jpeg, png, jpg, gif, webp.',
+            'image.max' => 'The image size must not exceed 10MB.',
             'price.required' => 'The price is required.',
             'price.numeric' => 'The price must be a number.',
             'price.min' => 'The price must be at least 0.',
@@ -69,6 +71,7 @@ class UpdateProductRequest extends FormRequest
     {
         return [
             'category_id' => 'category',
+            'image' => 'product image',
         ];
     }
 }

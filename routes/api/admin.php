@@ -7,6 +7,7 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderDetailController;
 use App\Http\Controllers\UserAddressController;
+use App\Http\Controllers\StatisticsController;
 
 Route::middleware(['auth.cookie', 'role:admin'])->prefix('admin')->group(function () {
     // Admin product management
@@ -38,4 +39,20 @@ Route::middleware(['auth.cookie', 'role:admin'])->prefix('admin')->group(functio
         ->name('admin.carts.index');
     Route::get('carts/{cart}', [CartController::class, 'adminShow'])
         ->name('admin.carts.show');
+
+    // Admin statistics
+    Route::prefix('statistics')->name('admin.statistics.')->group(function () {
+        Route::get('overview', [StatisticsController::class, 'overview'])
+            ->name('overview');
+        Route::get('dashboard', [StatisticsController::class, 'dashboard'])
+            ->name('dashboard');
+        Route::get('users', [StatisticsController::class, 'users'])
+            ->name('users');
+        Route::get('products', [StatisticsController::class, 'products'])
+            ->name('products');
+        Route::get('orders', [StatisticsController::class, 'orders'])
+            ->name('orders');
+        Route::get('revenue', [StatisticsController::class, 'revenue'])
+            ->name('revenue');
+    });
 });
