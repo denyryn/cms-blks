@@ -13,7 +13,7 @@ Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])
         ->name('register');
 
-    Route::get('/user', [AuthController::class, 'get'])
+    Route::get('/me', [AuthController::class, 'get'])
         ->name('user');
 });
 

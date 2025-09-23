@@ -52,13 +52,13 @@ trait ApiResponse
             'message' => $message,
             'data' => $resource instanceof AnonymousResourceCollection ? $resource->collection : $paginator->items(),
             'pagination' => [
-                'current_page' => $paginator->currentPage(),
-                'from' => $paginator->firstItem(),
-                'to' => $paginator->lastItem(),
-                'per_page' => $paginator->perPage(),
-                'last_page' => $paginator->lastPage(),
-                'total' => $paginator->total(),
-                'has_more_pages' => $paginator->hasMorePages(),
+                'current_page' => (int) $paginator->currentPage(),
+                'from' => (int) $paginator->firstItem(),
+                'to' => (int) $paginator->lastItem(),
+                'per_page' => (int) $paginator->perPage(),
+                'last_page' => (int) $paginator->lastPage(),
+                'total' => (int) $paginator->total(),
+                'has_more_pages' => (bool) $paginator->hasMorePages(),
             ],
         ], $code);
     }

@@ -17,10 +17,16 @@ class ProductController extends Controller
 
     /**
      * Display a listing of the resource.
+     * 
+     * @queryParam per_page int Number of items per page (default: 15)
+     * @queryParam page int Current page number (default: 1)
+     * @queryParam search string Search term for product name or description
+     * @queryParam category_id int Filter by category ID
      */
     public function index(Request $request): JsonResponse
     {
-        $perPage = $request->get('per_page', 15);
+        $perPage = (int) $request->get('per_page', 15);
+        $currentPage = (int) $request->get('page', 1);
         $search = $request->get('search');
         $categoryId = $request->get('category_id');
 
@@ -39,7 +45,7 @@ class ProductController extends Controller
             $query->where('category_id', $categoryId);
         }
 
-        $products = $query->paginate($perPage);
+        $products = $query->paginate($perPage, ['*'], 'page', $currentPage);
         $resource = ProductResource::collection($products);
 
         return $this->paginatedResponse($resource, 'Products retrieved successfully.');
@@ -107,6 +113,54 @@ class ProductController extends Controller
         return $this->successResponse(
             null,
             'Product deleted successfully.'
+        );
+    }
+
+    /**
+     * Admin: Display a listing of all products with additional filters.
+     * 
+     * @queryParam per_page int Number of items per page (default: 15)
+     * @queryParam page int Current page number (default: 1)
+     * @queryParam search string Search term for product name or description
+     * @queryParam category_id int Filter by category ID
+     */
+    public function adminIndex(Request $request): JsonResponse
+    {
+        $perPage = (int) $request->get('per_page', 15);
+        $search = $request->get('search');
+        $categoryId = $request->get('category_id');
+
+        $query = Product::with('category');
+
+        // Apply search filter
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        // Apply category filter
+        if ($categoryId) {
+            $query->where('category_id', $categoryId);
+        }
+
+        $products = $query->paginate($perPage);
+        $resource = ProductResource::collection($products);
+
+        return $this->paginatedResponse($resource, 'Products retrieved successfully.');
+    }
+
+    /**
+     * Admin: Display the specified product with additional details.
+     */
+    public function adminShow(Product $product): JsonResponse
+    {
+        $product->load('category');
+
+        return $this->successResponse(
+            new ProductResource($product),
+            'Product retrieved successfully.'
         );
     }
 }

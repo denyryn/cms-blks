@@ -26,13 +26,17 @@ class CartController extends Controller
 
     /**
      * Display a listing of the resource.
+     * 
+     * @param Request $request
+     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
-        $perPage = $request->get('per_page', 15);
+        $perPage = (int) $request->get('per_page', 15);
+        $currentPage = (int) $request->get('page', 1);
         $user = $request->user();
 
-        $carts = $this->cartService->getUserCartPaginated($user, $perPage);
+        $carts = $this->cartService->getUserCartPaginated($user, $perPage, $currentPage);
         $resource = CartResource::collection($carts);
 
         return $this->paginatedResponse($resource, 'Cart items retrieved successfully.');
@@ -191,6 +195,38 @@ class CartController extends Controller
         return $this->successResponse(
             null,
             'Cart item removed (quantity set to zero or below).'
+        );
+    }
+
+    /**
+     * Admin: Display a listing of all cart items.
+     * 
+     * @queryParam per_page int Number of items per page (default: 15)
+     * @queryParam page int Current page number (default: 1)
+     */
+    public function adminIndex(Request $request): JsonResponse
+    {
+        $perPage = (int) $request->get('per_page', 15);
+        $currentPage = (int) $request->get('page', 1);
+
+        $carts = Cart::with(['user', 'product'])
+            ->paginate($perPage, ['*'], 'page', $currentPage);
+
+        $resource = CartResource::collection($carts);
+
+        return $this->paginatedResponse($resource, 'Cart items retrieved successfully.');
+    }
+
+    /**
+     * Admin: Display the specified cart item.
+     */
+    public function adminShow(Cart $cart): JsonResponse
+    {
+        $cart->load(['user', 'product']);
+
+        return $this->successResponse(
+            new CartResource($cart),
+            'Cart item retrieved successfully.'
         );
     }
 }

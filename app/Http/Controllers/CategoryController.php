@@ -18,47 +18,15 @@ class CategoryController extends Controller
     /**
      * Display a listing of the resource.
      * 
-     * @OA\Get(
-     *     path="/api/categories",
-     *     tags={"Categories"},
-     *     summary="Get all categories",
-     *     description="Retrieve a paginated list of all product categories",
-     *     @OA\Parameter(
-     *         name="per_page",
-     *         in="query",
-     *         description="Number of items per page",
-     *         required=false,
-     *         @OA\Schema(type="integer", default=15)
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Categories retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="code", type="integer", example=200),
-     *             @OA\Property(property="status", type="string", example="success"),
-     *             @OA\Property(property="message", type="string", example="Categories retrieved successfully."),
-     *             @OA\Property(
-     *                 property="data",
-     *                 type="object",
-     *                 @OA\Property(
-     *                     property="data",
-     *                     type="array",
-     *                     @OA\Items(ref="#/components/schemas/Category")
-     *                 ),
-     *                 @OA\Property(property="current_page", type="integer", example=1),
-     *                 @OA\Property(property="last_page", type="integer", example=3),
-     *                 @OA\Property(property="per_page", type="integer", example=15),
-     *                 @OA\Property(property="total", type="integer", example=45)
-     *             )
-     *         )
-     *     )
-     * )
+     * @queryParam per_page int Number of items per page (default: 15)
+     * @queryParam page int Current page number (default: 1)
      */
     public function index(Request $request): JsonResponse
     {
-        $perPage = $request->get('per_page', 15);
+        $perPage = (int) $request->get('per_page', 15);
+        $currentPage = (int) $request->get('page', 1);
         $categories = Category::withCount('products')
-            ->paginate($perPage);
+            ->paginate($perPage, ['*'], 'page', $currentPage);
 
         $resource = CategoryResource::collection($categories);
 
@@ -67,38 +35,6 @@ class CategoryController extends Controller
 
     /**
      * Store a newly created resource in storage.
-     * 
-     * @OA\Post(
-     *     path="/api/categories",
-     *     tags={"Categories"},
-     *     summary="Create a new category",
-     *     description="Create a new product category",
-     *     security={{"sanctum": {}}},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(ref="#/components/schemas/CreateCategoryRequest")
-     *     ),
-     *     @OA\Response(
-     *         response=201,
-     *         description="Category created successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="code", type="integer", example=201),
-     *             @OA\Property(property="status", type="string", example="success"),
-     *             @OA\Property(property="message", type="string", example="Category created successfully."),
-     *             @OA\Property(property="data", ref="#/components/schemas/Category")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error",
-     *         @OA\JsonContent(ref="#/components/schemas/ValidationError")
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthorized",
-     *         @OA\JsonContent(ref="#/components/schemas/ErrorResponse")
-     *     )
-     * )
      */
     public function store(StoreCategoryRequest $request): JsonResponse
     {
@@ -159,6 +95,37 @@ class CategoryController extends Controller
         return $this->successResponse(
             null,
             'Category deleted successfully.'
+        );
+    }
+
+    /**
+     * Admin: Display a listing of all categories with additional details.
+     * 
+     * @queryParam per_page int Number of items per page (default: 15)
+     * @queryParam page int Current page number (default: 1)
+     */
+    public function adminIndex(Request $request): JsonResponse
+    {
+        $perPage = (int) $request->get('per_page', 15);
+        $currentPage = (int) $request->get('page', 1);
+        $categories = Category::withCount('products')
+            ->paginate($perPage, ['*'], 'page', $currentPage);
+
+        $resource = CategoryResource::collection($categories);
+
+        return $this->paginatedResponse($resource, 'Categories retrieved successfully.');
+    }
+
+    /**
+     * Admin: Display the specified category with additional details.
+     */
+    public function adminShow(Category $category): JsonResponse
+    {
+        $category->loadCount('products');
+
+        return $this->successResponse(
+            new CategoryResource($category),
+            'Category retrieved successfully.'
         );
     }
 }

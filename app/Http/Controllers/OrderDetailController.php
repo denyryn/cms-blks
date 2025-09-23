@@ -15,9 +15,16 @@ class OrderDetailController extends Controller
 
     /**
      * Display a listing of the resource.
+     * 
+     * @queryParam per_page int Number of items per page (default: 15)
+     * @queryParam page int Current page number (default: 1)
+     * @queryParam order_id int Filter by order ID
+     * @queryParam product_id int Filter by product ID
      */
     public function index(Request $request)
     {
+        $perPage = (int) $request->get('per_page', 15);
+        $currentPage = (int) $request->get('page', 1);
         $query = OrderDetail::with(['product.category', 'order']);
 
         // Filter by order_id if provided
@@ -30,7 +37,7 @@ class OrderDetailController extends Controller
             $query->where('product_id', $request->product_id);
         }
 
-        $orderDetails = $query->paginate(15);
+        $orderDetails = $query->paginate($perPage, ['*'], 'page', $currentPage);
 
         return $this->successResponse(
             OrderDetailResource::collection($orderDetails)->response()->getData(),
@@ -126,12 +133,17 @@ class OrderDetailController extends Controller
 
     /**
      * Get order details for a specific product.
+     * 
+     * @queryParam per_page int Number of items per page (default: 15)
+     * @queryParam page int Current page number (default: 1)
      */
-    public function getProductOrderDetails($productId)
+    public function getProductOrderDetails(Request $request, $productId)
     {
+        $perPage = (int) $request->get('per_page', 15);
+        $currentPage = (int) $request->get('page', 1);
         $orderDetails = OrderDetail::with(['order', 'product.category'])
             ->where('product_id', $productId)
-            ->paginate(15);
+            ->paginate($perPage, ['*'], 'page', $currentPage);
 
         return $this->successResponse(
             OrderDetailResource::collection($orderDetails)->response()->getData(),

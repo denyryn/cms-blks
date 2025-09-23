@@ -13,11 +13,11 @@ class CartService
     /**
      * Get paginated cart items for a user.
      */
-    public function getUserCartPaginated(User $user, int $perPage = 15): LengthAwarePaginator
+    public function getUserCartPaginated(User $user, int $perPage = 15, int $currentPage = 1): LengthAwarePaginator
     {
         return Cart::with(['product.category'])
             ->where('user_id', $user->id)
-            ->paginate($perPage);
+            ->paginate($perPage, ['*'], 'page', $currentPage);
     }
 
     /**

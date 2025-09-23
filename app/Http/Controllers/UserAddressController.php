@@ -19,10 +19,15 @@ class UserAddressController extends Controller
 
     /**
      * Display a listing of the resource.
+     * 
+     * @queryParam per_page int Number of items per page (default: 15)
+     * @queryParam page int Current page number (default: 1)
+     * @queryParam user_id int Filter by user ID
      */
     public function index(Request $request): JsonResponse
     {
-        $perPage = $request->get('per_page', 15);
+        $perPage = (int) $request->get('per_page', 15);
+        $currentPage = (int) $request->get('page', 1);
         $userId = $request->get('user_id');
 
         $query = UserAddress::with(['user']);
@@ -36,7 +41,7 @@ class UserAddressController extends Controller
         $query->orderBy('is_default', 'desc')
             ->orderBy('created_at', 'desc');
 
-        $addresses = $query->paginate($perPage);
+        $addresses = $query->paginate($perPage, ['*'], 'page', $currentPage);
         $resource = UserAddressResource::collection($addresses);
 
         return $this->paginatedResponse($resource, 'User addresses retrieved successfully.');

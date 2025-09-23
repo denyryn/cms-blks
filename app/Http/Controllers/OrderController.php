@@ -19,10 +19,16 @@ class OrderController extends Controller
 
     /**
      * Display a listing of the resource.
+     * 
+     * @queryParam per_page int Number of items per page (default: 15)
+     * @queryParam page int Current page number (default: 1)
+     * @queryParam user_id int Filter by user ID
+     * @queryParam status string Filter by order status
      */
     public function index(Request $request): JsonResponse
     {
-        $perPage = $request->get('per_page', 15);
+        $perPage = (int) $request->get('per_page', 15);
+        $currentPage = (int) $request->get('page', 1);
         $userId = $request->get('user_id');
         $status = $request->get('status');
 
@@ -41,7 +47,7 @@ class OrderController extends Controller
         // Order by most recent first
         $query->orderBy('created_at', 'desc');
 
-        $orders = $query->paginate($perPage);
+        $orders = $query->paginate($perPage, ['*'], 'page', $currentPage);
         $resource = OrderResource::collection($orders);
 
         return $this->paginatedResponse($resource, 'Orders retrieved successfully.');
