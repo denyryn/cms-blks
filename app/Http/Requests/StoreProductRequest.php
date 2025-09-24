@@ -23,7 +23,7 @@ class StoreProductRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255|unique:products,name',
-            'description' => 'nullable|string|max:1000',
+            'description' => 'nullable|string|max:5000',
             'image' => 'nullable|file|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
             'price' => 'required|numeric|min:0|max:999999.99',
             'category_id' => 'nullable|exists:categories,id',
@@ -43,7 +43,7 @@ class StoreProductRequest extends FormRequest
             'name.max' => 'The product name must not exceed 255 characters.',
             'name.unique' => 'A product with this name already exists.',
             'description.string' => 'The description must be a string.',
-            'description.max' => 'The description must not exceed 1000 characters.',
+            'description.max' => 'The description must not exceed 5000 characters.',
             'image.file' => 'The image must be a file.',
             'image.image' => 'The file must be an image.',
             'image.mimes' => 'The image must be a file of type: jpeg, png, jpg, gif, webp.',
