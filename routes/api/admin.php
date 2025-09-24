@@ -1,6 +1,7 @@
 <?php
 
 
+use App\Http\Controllers\GuestMessageController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CartController;
@@ -54,5 +55,10 @@ Route::middleware(['auth.cookie', 'role:admin'])->prefix('admin')->group(functio
             ->name('orders');
         Route::get('revenue', [StatisticsController::class, 'revenue'])
             ->name('revenue');
+        Route::get('guest-messages', [GuestMessageController::class, 'statistics'])
+            ->name('guest-messages');
     });
+
+    Route::resource('guest-messages', GuestMessageController::class)
+        ->except(['store']);
 });
